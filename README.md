@@ -9,10 +9,7 @@ Files
 2. Run `npm install` to install dependencies.
 3. Run the project using `node index.js`.
 
-
-
-
-    node index.js
+    ```node index.js```
 
 ## API Documentation
 ### Endpoint
@@ -31,7 +28,7 @@ This application is live on : https://hng-intern-2.onrender.com
 
 CORS is been implemented so other domain can access the file
 
-
+Check out this link if you need great nodejs developers
 [Nodejs-developers-HNG](https://hng.tech/hire/nodejs-developers)
 
 
