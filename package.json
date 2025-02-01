@@ -1,0 +1,16 @@
+{
+    "name": "second_project",
+    "version": "1.0.0",
+    "description": "For display json file",
+    "main": "index.js",
+    "scripts": {
+      "test": "nodemon index.js"
+    },
+    "author": "Chika Mark",
+    "license": "ISC",
+    "dependencies": {
+      "cors": "^2.8.5",
+      "express": "^4.21.2"
+    }
+}
+  

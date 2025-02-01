@@ -1,6 +1,6 @@
 const http = require("http")
 const jsonData = require("./output")
-const port = 3000;
+const port = process.env.port  || 3000;
 
 //const data = fs.readFileSync(__dirname + '/output.js', "utf-8")
 const jsData= JSON.stringify(jsonData)
