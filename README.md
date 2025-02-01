@@ -4,16 +4,35 @@ Files
     output.js
     package.json
 
+## Setup Instructions
+1. Clone the repository.
+2. Run `npm install` to install dependencies.
+3. Run the project using `node index.js`.
 
-How to run this file
+
+
 
     node index.js
+
+## API Documentation
+### Endpoint
+- `GET /` - Returns the basic information in JSON format.
+
+### Example Response
+```json
+{
+  "email": "markworship001@gmail.com",
+  "current_datetime": dynamically returned
+  "github_url": "https://github.com/chika-12/HNG_INTERN.git"
+}
 
 
 This application is live on : https://hng-intern-2.onrender.com
 
 
-Structure : HNG_INTERN.
+
+
+Back Link: Node.js Developers - HNG Tech
 
 CORS is been implemented so other domain can access the file
 
