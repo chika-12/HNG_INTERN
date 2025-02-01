@@ -7,7 +7,7 @@ Files
 
 How to run this file
 
-    To lunch this file : node index.js
+    node index.js
 
 
 This application is live on : https://hng-intern-2.onrender.com
