@@ -29,10 +29,9 @@ Files
 
 This application is live on : https://hng-intern-2.onrender.com
 
-
-
-
-Back Link: Node.js Developers - HNG Tech
-
 CORS is been implemented so other domain can access the file
+
+
+[Nodejs-developers-HNG](https://hng.tech/hire/nodejs-developers)
+
 
