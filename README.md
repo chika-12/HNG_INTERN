@@ -1,34 +1,63 @@
-This repository contains nodejs program that display a json file.
-Files
-    index.js
-    output.js
-    package.json
+## 📂 Project Structure
 
-## Setup Instructions
-1. Clone the repository.
-2. Run `npm install` to install dependencies.
-3. Run the project using `node index.js`.
-
-    ```node index.js```
-
-## API Documentation
-### Endpoint
-- `GET /` - Returns the basic information in JSON format.
-
-### Example Response
-```json
-{
-  "email": "markworship001@gmail.com",
-  "current_datetime": "2025-01-30T09:30:00Z"
-  "github_url": "https://github.com/chika-12/HNG_INTERN.git"
-}
+```
+project-root/
+│
+├── src/
+│   ├── controllers/
+│   │   └── classifyController.js
+│   │       # Handles request/response logic
+│
+│   ├── services/
+│   │   └── genderizeService.js
+│   │       # Handles external API communication
+│
+│   ├── routes/
+│   │   └── classifyRoutes.js
+│   │       # Defines API endpoints
+│
+│   └── app.js
+│       # Express app configuration and middleware
+│
+├── server.js
+│   # Application entry point
+│
+├── package.json
+│   # Project metadata and dependencies
+│
+└── README.md
+    # Project documentation
 ```
 
-This application is live on : https://hng-intern-2.onrender.com
+---
 
-CORS is been implemented so other domain can access the file
+## 🧩 Architecture Explanation
 
-Check out this link if you need great nodejs developers
-[Nodejs-developers-HNG](https://hng.tech/hire/nodejs-developers)
+* **Routes Layer**
 
+  * Defines API endpoints
+  * Directs requests to controllers
 
+* **Controller Layer**
+
+  * Handles request validation
+  * Processes responses
+  * Applies business logic
+
+* **Service Layer**
+
+  * Communicates with external APIs
+  * Keeps controller clean and maintainable
+
+---
+
+## 🎯 Why This Structure?
+
+This structure improves:
+
+* Code readability
+* Scalability
+* Maintainability
+* Separation of concerns
+
+It follows standard backend engineering practices used in production systems.
