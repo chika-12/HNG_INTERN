@@ -2,7 +2,7 @@
   "name": "hng_stage-0",
   "version": "1.0.0",
   "description": "This project is part of the HNG Internship (Backend Stage 0 Task).",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -12,6 +12,7 @@
   "type": "commonjs",
   "dependencies": {
     "axios": "^1.15.0",
+    "dotenv": "^17.4.1",
     "express": "^5.2.1"
   }
 }
