@@ -17,22 +17,22 @@ app.use(express.json({limit: '10kb'}))
 
 app.use((req, res, next) => {
     res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    if (req.method === "OPTIONS") {
+        return res.sendStatus(200);
+    }
     next();
 });
 
-const limit = rate_limiter({
-    max:100,
-    windowMs: 60 * 60 * 1000,
-    message: 'Too many requests from this IP. Try again later.'
-})
+// const limit = rate_limiter({
+//     max:100,
+//     windowMs: 60 * 60 * 1000,
+//     message: 'Too many requests from this IP. Try again later.'
+// })
 
-app.use('/api', limit);
+//app.use('/', limit);
 
-//Testing route
-
-app.get('/', (req, res) => {
-  res.json({ message: 'DayTrack API is running' })
-})
 app.use('/api', profileRoute)
 
 
