@@ -1,7 +1,7 @@
 {
-  "name": "hng_stage1",
+  "name": "hng_stage2",
   "version": "1.0.0",
-  "description": "**Stage 1 (Backend) — Data Persistence & API Design Assessment**   📅 Deadline: April 17, 2026 — 11:59 PM",
+  "description": "**Stage 2 (Backend) — Intelligence Query Engine** ",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -26,5 +26,8 @@
     "nodemon": "^3.1.14",
     "uuid": "^13.0.0",
     "xss-clean": "^0.1.4"
+  },
+  "devDependencies": {
+    "prettier": "^3.8.3"
   }
 }

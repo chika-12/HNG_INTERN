@@ -1,197 +1,360 @@
-# 📌 Profile Intelligence Service API (Express.js)
+# Profiles API
 
-**Stage 1 (Backend) — Data Persistence & API Design Assessment**  
-📅 Deadline: April 17, 2026 — 11:59 PM  
+A RESTful API that serves African profile data with support for structured filtering, natural language search, sorting, and pagination.
 
----
-
-## 🚀 Overview
-
-The **Profile Intelligence Service** is a RESTful API built with **Express.js** that enriches a given name using multiple external APIs, processes the data, and stores it for retrieval and management.
-
-This project demonstrates:
-
-- Multi-API integration  
-- Clean RESTful API design  
-- Data transformation and validation  
-- Database persistence  
-- Idempotent request handling  
-- Structured error handling  
+Built with **Node.js**, **Express**, and **MongoDB (Mongoose)** as part of the HNG Internship Stage 2 backend challenge.
 
 ---
 
-## 🧱 Tech Stack
+## Table of Contents
 
-- Node.js  
-- Express.js  
-- Database: *(MongoDB / PostgreSQL — update this)*  
-- HTTP Client: Axios / Fetch  
-- UUID: v7  
-- Hosting: *(Vercel / Railway / AWS — update this)*  
-
----
-
-## 🎯 Objective
-
-This API:
-
-1. Accepts a name  
-2. Calls external APIs  
-3. Processes and structures the data  
-4. Stores the result  
-5. Provides endpoints for retrieval, filtering, and deletion  
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [Getting Started](#getting-started)
+- [Environment Variables](#environment-variables)
+- [Database Seeding](#database-seeding)
+- [API Reference](#api-reference)
+  - [Get All Profiles](#1-get-all-profiles)
+  - [Natural Language Search](#2-natural-language-search)
+- [Filters](#filters)
+- [Sorting](#sorting)
+- [Pagination](#pagination)
+- [Error Handling](#error-handling)
+- [Performance](#performance)
 
 ---
 
-## 🔗 External APIs
+## Features
 
-- Genderize → https://api.genderize.io?name={name}  
-- Agify → https://api.agify.io?name={name}  
-- Nationalize → https://api.nationalize.io?name={name}  
-
----
-
-## ⚙️ Data Processing Rules
-
-### Gender
-- `probability` → `gender_probability`  
-- `count` → `sample_size`  
-
-### Age
-| Age Range | Group |
-|----------|------|
-| 0–12 | child |
-| 13–19 | teenager |
-| 20–59 | adult |
-| 60+ | senior |
-
-### Country
-- Select country with **highest probability**
-- Store:
-  - `country_id`
-  - `country_probability`
-
-### Storage Rules
-- ID: UUID v7  
-- Timestamp: UTC ISO 8601  
-- Enforce idempotency (no duplicate names)  
+- Fetch profiles with structured query filters
+- Natural language search (rule-based, no AI/LLM)
+- Sorting by any field (ascending/descending)
+- Pagination with metadata
+- Centralized error handling
+- UUID v7 primary keys
+- Database seeding from JSON
 
 ---
 
-## 📁 Project Structure
+## Tech Stack
 
+| Layer         | Technology    |
+| ------------- | ------------- |
+| Runtime       | Node.js       |
+| Framework     | Express.js    |
+| Database      | MongoDB Atlas |
+| ODM           | Mongoose      |
+| ID Generation | UUID v7       |
+| Config        | dotenvx       |
 
-src/
-│
+---
+
+## Project Structure
+
+```
+hng_stage2/
 ├── controllers/
-├── services/
+│   └── profileController.js     # Route handlers
 ├── models/
+│   └── usermodel.js             # Mongoose schema
 ├── routes/
-├── middlewares/
+│   └── profileRoutes.js         # API routes
+├── queryFeatures/
+│   ├── features.js              # Filter + sort + pagination builder
+│   ├── searchParser.js          # Natural language query parser
+│   └── validateQuery.js         # Query parameter validation
+├── middleware/
+│   └── globalErrorHandler.js    # Centralized error handler
 ├── utils/
-│
+│   ├── AppError.js              # Custom error class
+│   └── catchAsync.js            # Async error wrapper
+├── json_data/
+│   ├── seed_profiles.json       # Seed data
+│   └── script.js                # Seeding script
 ├── app.js
-└── server.js
-
+├── server.js
+└── config.env
+```
 
 ---
 
-## 📡 API Endpoints
+## Getting Started
 
-### ➤ Create Profile
+### Prerequisites
 
-**POST** `/api/profiles`
+- Node.js v18+
+- MongoDB Atlas account
+- npm
 
-#### Request
-```json
-{
-  "name": "ella"
-}
+### Installation
 
-Response (201)
-{
-  "status": "success",
-  "data": {
-    "id": "uuid",
-    "name": "ella",
-    "gender": "female",
-    "gender_probability": 0.99,
-    "sample_size": 1234,
-    "age": 46,
-    "age_group": "adult",
-    "country_id": "DRC",
-    "country_probability": 0.85,
-    "created_at": "2026-04-01T12:00:00Z"
-  }
-}
+```bash
+# Clone the repository
+git clone https://github.com/your-username/hng_stage2.git
+cd hng_stage2
 
-Idempotent Response
-{
-  "status": "success",
-  "message": "Profile already exists",
-  "data": {}
-}
-
-➤ Delete Profile
-
-DELETE /api/profiles/:id
-
-Response:
-
-204 No Content
-⚠️ Error Handling
-
-All errors follow this format:
-
-{
-  "status": "error",
-  "message": "Error description"
-}
-Status Codes
-Code	Meaning
-400	Missing or empty name
-422	Invalid input
-404	Profile not found
-500	Server error
-502	External API failure
-🚨 External API Errors
-{
-  "status": "502",
-  "message": "Genderize returned an invalid response"
-}
-🧪 Edge Cases
-
-The system does NOT store data when:
-
-Gender is null or count = 0
-Age is null
-No country data returned
-🔐 Idempotency
-Input name is normalized
-Existing record is checked before insert
-Duplicate requests return existing data
-🌍 CORS
-Access-Control-Allow-Origin: *
-
-Example (Express):
-
-app.use(cors({ origin: "*" }));
-▶️ Running Locally
 # Install dependencies
 npm install
+```
 
-# Start development
+### Run the server
+
+```bash
+# Development
 npm run dev
 
-# Start production
+# Production
 npm start
-🔗 Deployment
+```
 
-Base URL:
+---
 
-https://yourapp.domain.app
+## Environment Variables
 
-Make sure:
+Create a `config.env` file in the project root:
 
-API is publicly accessible
-All endpoints are live
+```env
+NODE_ENV=development
+PORT=3000
+DATABASE=mongodb+srv://username:<PASSWORD>@cluster0.xxxxx.mongodb.net/profiles
+PASSWORD=your_mongodb_password
+```
+
+---
+
+## Database Seeding
+
+To seed the database with the bundled profile data:
+
+```bash
+node json_data/script.js
+```
+
+This will:
+
+1. Connect to MongoDB
+2. Clear any existing records
+3. Generate a UUID v7 for each profile
+4. Insert all profiles from `seed_profiles.json`
+
+---
+
+## API Reference
+
+### Base URL
+
+```
+http://localhost:3000/api/profiles
+```
+
+---
+
+### 1. Get All Profiles
+
+```
+GET /api/profiles
+```
+
+Returns all profiles with optional filtering, sorting, and pagination.
+
+**Example requests:**
+
+```
+GET /api/profiles
+GET /api/profiles?gender=female
+GET /api/profiles?age_group=adult&country_id=NG
+GET /api/profiles?min_age=18&max_age=35
+GET /api/profiles?gender=male&min_gender_probability=0.8
+GET /api/profiles?sort=-age&page=2&limit=10
+```
+
+**Example response:**
+
+```json
+{
+  "status": "success",
+  "total": 143,
+  "page": 1,
+  "limit": 10,
+  "totalPages": 15,
+  "hasNextPage": true,
+  "hasPrevPage": false,
+  "data": [
+    {
+      "id": "019687a2-...",
+      "name": "mercy agyei",
+      "gender": "female",
+      "gender_probability": 0.79,
+      "age": 9,
+      "age_group": "child",
+      "country_id": "NG",
+      "country_name": "Nigeria",
+      "country_probability": 0.11,
+      "created_at": "2025-01-01T00:00:00.000Z"
+    }
+  ]
+}
+```
+
+---
+
+### 2. Natural Language Search
+
+```
+GET /api/profiles/search?q=<plain English query>
+```
+
+Interprets plain English and converts it into structured filters. Rule-based only — no AI or LLMs involved.
+
+**Example requests:**
+
+```
+GET /api/profiles/search?q=young males from nigeria
+GET /api/profiles/search?q=females above 30
+GET /api/profiles/search?q=people from angola
+GET /api/profiles/search?q=adult males from kenya
+GET /api/profiles/search?q=male and female teenagers above 17
+GET /api/profiles/search?q=elderly women from ghana&page=1&limit=5
+```
+
+**Supported query mappings:**
+
+| Natural Language                     | Extracted Filter                                 |
+| ------------------------------------ | ------------------------------------------------ |
+| `young males`                        | `gender=male, min_age=16, max_age=24`            |
+| `females above 30`                   | `gender=female, min_age=30`                      |
+| `people from angola`                 | `country_id=AO`                                  |
+| `adult males from kenya`             | `gender=male, age_group=adult, country_id=KE`    |
+| `male and female teenagers above 17` | `age_group=teenager, min_age=17`                 |
+| `elderly women from ghana`           | `gender=female, age_group=senior, country_id=GH` |
+| `between 20 and 40`                  | `min_age=20, max_age=40`                         |
+| `men under 25`                       | `gender=male, max_age=25`                        |
+
+**Example response:**
+
+```json
+{
+  "status": "success",
+  "query": "young males from nigeria",
+  "interpreted": {
+    "gender": "male",
+    "min_age": 16,
+    "max_age": 24,
+    "country_id": "NG"
+  },
+  "total": 12,
+  "page": 1,
+  "limit": 10,
+  "totalPages": 2,
+  "hasNextPage": true,
+  "hasPrevPage": false,
+  "data": [...]
+}
+```
+
+> Note: `interpreted` shows exactly what filters were extracted from your query — useful for debugging unexpected results.
+
+---
+
+## Filters
+
+Available on `GET /api/profiles`:
+
+| Parameter                 | Type        | Description                            | Example                        |
+| ------------------------- | ----------- | -------------------------------------- | ------------------------------ |
+| `gender`                  | string      | `male` or `female`                     | `?gender=male`                 |
+| `age_group`               | string      | `child`, `teenager`, `adult`, `senior` | `?age_group=adult`             |
+| `country_id`              | string      | 2-letter ISO code                      | `?country_id=NG`               |
+| `min_age`                 | number      | Minimum age (inclusive)                | `?min_age=18`                  |
+| `max_age`                 | number      | Maximum age (inclusive)                | `?max_age=60`                  |
+| `min_gender_probability`  | float (0–1) | Minimum gender confidence score        | `?min_gender_probability=0.75` |
+| `min_country_probability` | float (0–1) | Minimum country confidence score       | `?min_country_probability=0.5` |
+
+All filters are combinable.
+
+---
+
+## Sorting
+
+Use the `sort` parameter. Prefix with `-` for descending order.
+
+```
+GET /api/profiles?sort=age           # ascending
+GET /api/profiles?sort=-age          # descending
+GET /api/profiles?sort=country_id,-age  # multiple fields
+```
+
+Default sort: `-created_at` (newest first).
+
+---
+
+## Pagination
+
+| Parameter | Default | Max | Description      |
+| --------- | ------- | --- | ---------------- |
+| `page`    | 1       | —   | Page number      |
+| `limit`   | 10      | 50  | Records per page |
+
+All paginated responses include:
+
+```json
+{
+  "total": 200,
+  "page": 2,
+  "limit": 10,
+  "totalPages": 20,
+  "hasNextPage": true,
+  "hasPrevPage": true
+}
+```
+
+---
+
+## Error Handling
+
+All errors follow a consistent structure:
+
+```json
+{
+  "status": "error",
+  "message": "<description>"
+}
+```
+
+| Status Code | Meaning                             |
+| ----------- | ----------------------------------- |
+| `400`       | Missing or empty required parameter |
+| `422`       | Invalid parameter type              |
+| `404`       | Profile not found                   |
+| `500`       | Internal server error               |
+
+**Examples:**
+
+```json
+// Unknown query parameter
+{ "status": "error", "message": "Invalid query parameters" }
+
+// Uninterpretable search query
+{ "status": "error", "message": "Unable to interpret query" }
+
+// Missing q parameter
+{ "status": "error", "message": "Query parameter \"q\" is required" }
+```
+
+---
+
+## Performance
+
+This API is optimized to handle the full dataset efficiently:
+
+- **`.lean()`** on all Mongoose queries — returns plain JS objects instead of full Mongoose documents, reducing memory overhead
+- **`Promise.all`** for parallel execution of `find()` and `countDocuments()` — both run simultaneously instead of sequentially
+- **Database indexes** on `gender`, `country_id`, `age_group`, and a compound index on all three — eliminates full collection scans on common filters
+- **Pagination cap** at 50 records per request — prevents large payload responses
+
+---
+
+## License
+
+MIT
