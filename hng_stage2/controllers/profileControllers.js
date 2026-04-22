@@ -5,6 +5,7 @@ const { v7: uuidv7 } = require('uuid');
 const queryBuilder = require('../queryFeatures/features.js');
 const validateQuery = require('../queryFeatures/validateQuery.js');
 const parseSearchQuery = require('../queryFeatures/searchParser.js');
+const AppError = require('../utils/appError.js');
 
 //Get all profiles and accepts query params
 exports.getProfiles = catchAsync(async (req, res, next) => {
@@ -206,6 +207,7 @@ exports.searchProfiles = catchAsync(async (req, res, next) => {
   const lim = Math.min(50, Math.max(1, Number(limit) || 10));
   const skip = (pg - 1) * lim;
 
+  //const { filter, sortBy, page, limit, skip } = queryBuilder(mongoFilter);
   const [profiles, total] = await Promise.all([
     Profile.find(mongoFilter).sort('-created_at').skip(skip).limit(lim).lean(),
     Profile.countDocuments(mongoFilter),
@@ -218,8 +220,8 @@ exports.searchProfiles = catchAsync(async (req, res, next) => {
     query: q,
     interpreted: parsedFilter, // helps with debugging
     total,
-    page: pg,
-    limit: lim,
+    page: page,
+    limit: limit,
     totalPages,
     hasNextPage: pg < totalPages,
     hasPrevPage: pg > 1,

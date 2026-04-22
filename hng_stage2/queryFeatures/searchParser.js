@@ -65,7 +65,7 @@ const parseSearchQuery = (q) => {
   const filter = {};
   let matched = false;
 
-  // ── GENDER ────────────────────────────────────────────────────────────────
+  // ── GENDER
   const hasMale = /\bmales?\b|\bmen\b|\bman\b|\bboys?\b/.test(input);
   const hasFemale = /\bfemales?\b|\bwomen\b|\bwoman\b|\bgirls?\b/.test(input);
 
@@ -76,17 +76,17 @@ const parseSearchQuery = (q) => {
     filter.gender = 'female';
     matched = true;
   } else if (hasMale && hasFemale) {
-    matched = true; // both — no gender filter, still valid
+    matched = true;
   }
 
-  // ── "YOUNG" → 16–24 ───────────────────────────────────────────────────────
+  // ── "YOUNG" 16–24
   if (/\byoung\b/.test(input)) {
     filter.min_age = 16;
     filter.max_age = 24;
     matched = true;
   }
 
-  // ── AGE GROUP ─────────────────────────────────────────────────────────────
+  //AGE GROUP
   for (const [keyword, group] of Object.entries(AGE_GROUP_MAP)) {
     if (new RegExp(`\\b${keyword}\\b`).test(input)) {
       filter.age_group = group;
@@ -95,7 +95,7 @@ const parseSearchQuery = (q) => {
     }
   }
 
-  // ── AGE RANGES ────────────────────────────────────────────────────────────
+  // ── AGE RANGES
   const aboveMatch = input.match(/(?:above|over|older than)\s+(\d+)/);
   if (aboveMatch) {
     filter.min_age = Number(aboveMatch[1]);
@@ -115,7 +115,7 @@ const parseSearchQuery = (q) => {
     matched = true;
   }
 
-  // ── COUNTRY ───────────────────────────────────────────────────────────────
+  // ── COUNTRY
   for (const [name, code] of Object.entries(COUNTRY_MAP)) {
     if (new RegExp(`\\b${name}\\b`).test(input)) {
       filter.country_id = code;
