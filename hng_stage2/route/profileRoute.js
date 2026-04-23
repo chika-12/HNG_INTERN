@@ -2,7 +2,7 @@ const express = require('express');
 const profileRoute = express.Router();
 const controllers = require('../controllers/profileControllers');
 
-profileRoute.get('/search', controllers.searchProfiles);
+profileRoute.get('/profiles/search', controllers.searchProfiles);
 profileRoute
   .route('/profiles')
   .get(controllers.getProfiles)
