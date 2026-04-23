@@ -5,7 +5,7 @@ module.exports = (err, req, res, next) => {
   if (err.name === 'ValidationError') {
     return res.status(422).json({
       status: 'error',
-      message: 'Invalid parameter type',
+      message: 'Invalid query parameter',
     });
   }
 
@@ -13,7 +13,7 @@ module.exports = (err, req, res, next) => {
   if (err.name === 'CastError') {
     return res.status(422).json({
       status: 'error',
-      message: 'Invalid parameter type',
+      message: 'Invalid query parameter',
     });
   }
 

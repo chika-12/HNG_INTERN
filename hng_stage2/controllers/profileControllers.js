@@ -213,6 +213,10 @@ exports.searchProfiles = catchAsync(async (req, res, next) => {
     Profile.countDocuments(mongoFilter),
   ]);
 
+  if (!profiles) {
+    return next(AppError('Unable to interpret query', 400));
+  }
+
   const totalPages = Math.ceil(total / lim);
 
   return res.status(200).json({

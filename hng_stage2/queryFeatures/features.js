@@ -1,5 +1,11 @@
+const AppError = require('../utils/appError');
+
 const queryBuilder = (query) => {
   const filter = {};
+
+  const VALID_SORT_FIELDS = ['age', 'created_at', 'gender_probability'];
+  const VALID_ORDERS = ['asc', 'desc'];
+
   if (query.gender) {
     filter.gender = query.gender;
   }
@@ -25,7 +31,23 @@ const queryBuilder = (query) => {
     };
   }
 
-  const sortBy = query.sort ? query.sort.split(',').join(' ') : '-created_at';
+  const sortField = query.sort_by;
+  const sortOrder = query.order || 'asc';
+
+  // Validate
+  if (sortField && !VALID_SORT_FIELDS.includes(sortField)) {
+    throw new AppError('Invalid query parameters',400);
+  }
+  if (query.order && !VALID_ORDERS.includes(query.order)) {
+    throw new AppError('Invalid query parameters', 400);
+  }
+
+  // Build sort string: "age" + "desc" → "-age", "age" + "asc" → "age"
+  const sortBy = sortField
+    ? sortOrder === 'desc'
+      ? `-${sortField}`
+      : sortField
+    : '-created_at';
 
   const page = Math.max(1, Number(query.page) || 1);
   const limit = Math.min(50, Math.max(1, Number(query.limit) || 10));
