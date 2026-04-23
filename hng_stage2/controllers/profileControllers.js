@@ -220,8 +220,8 @@ exports.searchProfiles = catchAsync(async (req, res, next) => {
     query: q,
     interpreted: parsedFilter, // helps with debugging
     total,
-    page: page,
-    limit: limit,
+    page: pg,
+    limit: lim,
     totalPages,
     hasNextPage: pg < totalPages,
     hasPrevPage: pg > 1,
