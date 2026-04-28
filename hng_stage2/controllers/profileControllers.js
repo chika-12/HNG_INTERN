@@ -6,7 +6,7 @@ const queryBuilder = require('../queryFeatures/features.js');
 const validateQuery = require('../queryFeatures/validateQuery.js');
 const parseSearchQuery = require('../queryFeatures/searchParser.js');
 const AppError = require('../utils/appError.js');
-const { Parser, Parser } = require('json2csv');
+const { Parser } = require('json2csv');
 
 //Get all profiles and accepts query params
 exports.getProfiles = catchAsync(async (req, res, next) => {
