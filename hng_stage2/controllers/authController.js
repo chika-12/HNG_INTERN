@@ -99,7 +99,7 @@ exports.githubCallbackHandler = catchAsync(async (req, res, next) => {
     return res.redirect(
       `http://localhost:4242/?accessToken=${accessToken}&refreshToken=${refreshToken}`
     );
-  }else {
+  } else {
     res.cookie('access_token', accessToken, { httpOnly: true });
     res.cookie('refresh_token', refreshToken, { httpOnly: true });
     res.redirect(process.env.WEB_PORTAL_URL);
@@ -115,7 +115,7 @@ exports.refreshToken = catchAsync(async (req, res, next) => {
     return next(new AppError('Invalid refresh token', 403));
   }
   const access_token = generateTokens.generateAccessToken(user._id, user.role);
-  return res.status(200).json({ access_token });
+  return res.status(200).json({ accessToken });
 });
 
 exports.logout = catchAsync(async (req, res, next) => {

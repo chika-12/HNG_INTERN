@@ -6,18 +6,31 @@ const {
   requireRole,
 } = require('../middleWare/protectMiddleWare');
 
-profileRoute.use(protectMiddleWare);
-profileRoute.get('/profiles/search', controllers.searchProfiles);
+//profileRoute.use(protectMiddleWare);
+profileRoute.get(
+  '/profiles/search',
+  protectMiddleWare,
+  controllers.searchProfiles
+);
 profileRoute
   .route('/profiles')
-  .get(controllers.getProfiles)
-  .post(requireRole(['admin']), controllers.createProfiles);
+  .get(protectMiddleWare, controllers.getProfiles)
+  .post(protectMiddleWare, requireRole(['admin']), controllers.createProfiles);
 
-profileRoute.get('/profiles/export', requireRole(['admin']), controllers.exportProfiles);
+profileRoute.get(
+  '/profiles/export',
+  protectMiddleWare,
+  requireRole(['admin']),
+  controllers.exportProfiles
+);
 
 profileRoute
   .route('/profiles/:id')
-  .get(controllers.getProfilesById)
-  .delete(requireRole(['admin']), controllers.deleteProfileById);
+  .get(protectMiddleWare, controllers.getProfilesById)
+  .delete(
+    protectMiddleWare,
+    requireRole(['admin']),
+    controllers.deleteProfileById
+  );
 
 module.exports = profileRoute;
