@@ -16,7 +16,7 @@ const ALLOWED_PARAMS = [
 ];
 
 const VALID_GENDERS = ['male', 'female'];
-const VALID_AGE_GROUPS = ['child', 'teenager', 'adult', 'senior'];
+const VALID_AGE_GROUPS = ['child', 'teenager', 'adult', 'senior', 'children'];
 
 const validateQuery = (query) => {
   const errors = [];
@@ -35,15 +35,23 @@ const validateQuery = (query) => {
   }
 
   // age_group
-  if (
-    query.age_group &&
-    !VALID_AGE_GROUPS.includes(query.age_group.toLowerCase())
-  ) {
-    errors.push(`Invalid age_group. Accepted: ${VALID_AGE_GROUPS.join(', ')}`);
+  if (query.age_group) {
+    const validAgeGoup = query.age_group.toLowerCase().split(',');
+    const isValid = validAgeGoup.every((group) =>
+      VALID_AGE_GROUPS.includes(group.trim())
+    );
+    if (!isValid) {
+      errors.push(
+        `Invalid age_group. Accepted: ${VALID_AGE_GROUPS.join(', ')}`
+      );
+    }
   }
 
   // country_id
-  if (query.country_id && !/^[A-Za-z]{2}$/.test(query.country_id)) {
+  if (
+    query.country_id &&
+    !/^[A-Za-z]{2}(,[A-Za-z]{2})*$/.test(query.country_id)
+  ) {
     errors.push('country_id must be a 2-letter ISO code (e.g. NG, KE)');
   }
 

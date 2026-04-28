@@ -10,10 +10,14 @@ const mongoose = require('mongoose');
 const port = process.env.PORT || 3000;
 const DB = process.env.DATABASE.replace('<PASSWORD>', process.env.PASSWORD);
 
-mongoose.connect(DB).then(() => {
-  console.log('Database connected');
-});
-
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
-});
+mongoose
+  .connect(DB)
+  .then(() => {
+    console.log('Database connected');
+    app.listen(port, () => {
+      console.log(`Server running on port ${port}`);
+    });
+  })
+  .catch((err) => {
+    console.log('Connection failed', err);
+  });

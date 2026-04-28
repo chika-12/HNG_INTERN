@@ -3,6 +3,7 @@ module.exports = (err, req, res, next) => {
 
   // Mongoose validation error
   if (err.name === 'ValidationError') {
+    console.log(err);
     return res.status(422).json({
       status: 'error',
       message: 'Invalid query parameter',
@@ -11,6 +12,7 @@ module.exports = (err, req, res, next) => {
 
   // Mongoose cast error (e.g. bad ObjectId)
   if (err.name === 'CastError') {
+    console.log(err);
     return res.status(422).json({
       status: 'error',
       message: 'Invalid query parameter',

@@ -10,10 +10,12 @@ const queryBuilder = (query) => {
     filter.gender = query.gender;
   }
   if (query.age_group) {
-    filter.age_group = query.age_group;
+    const age_list = query.age_group.split(',');
+    filter.age_group = { $in: age_list };
   }
   if (query.country_id) {
-    filter.country_id = query.country_id.toUpperCase();
+    const country_list = query.country_id.toUpperCase().split(',');
+    filter.country_id = { $in: country_list };
   }
   if (query.min_age || query.max_age) {
     filter.age = {};
@@ -36,7 +38,7 @@ const queryBuilder = (query) => {
 
   // Validate
   if (sortField && !VALID_SORT_FIELDS.includes(sortField)) {
-    throw new AppError('Invalid query parameters',400);
+    throw new AppError('Invalid query parameters', 400);
   }
   if (query.order && !VALID_ORDERS.includes(query.order)) {
     throw new AppError('Invalid query parameters', 400);

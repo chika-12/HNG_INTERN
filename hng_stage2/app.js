@@ -7,7 +7,9 @@ const rate_limiter = require('express-rate-limit');
 const xss = require('xss-clean');
 const profileRoute = require('./route/profileRoute');
 const app = express();
+const cookieParser = require('cookie-parser');
 const globalErrorHandler = require('./middleWare/globalErrorHandler');
+const authRouter = require('./route/authRoute');
 
 app.use(helmet());
 app.use(xss());
@@ -15,6 +17,7 @@ app.use(hpp());
 app.use(mongodb_sanitizer());
 
 app.use(express.json({ limit: '10kb' }));
+app.use(cookieParser());
 
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
@@ -37,7 +40,8 @@ const limit = rate_limiter({
 });
 
 app.use('/api', limit);
-app.use('/api', profileRoute);
+app.use('/api/v1', profileRoute);
+app.use('/api/v1/auth', authRouter);
 app.use(globalErrorHandler);
 
 module.exports = app;
