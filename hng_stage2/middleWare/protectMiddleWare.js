@@ -13,17 +13,30 @@ exports.protectMiddleWare = catchAsync(async (req, res, next) => {
   } else {
     token = req.cookies?.access_token;
   }
+
   if (!token) {
     return next(new AppError('You are not logged in', 401));
   }
-  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+  let decoded;
+  try {
+    decoded = jwt.verify(token, process.env.JWT_SECRET);
+  } catch (err) {
+    if (err.name === 'TokenExpiredError') {
+      return next(new AppError('Token expired', 401));
+    }
+    return next(new AppError('Invalid token', 401));
+  }
+
   if (!decoded?.id) {
     return next(new AppError('Invalid token', 401));
   }
+
   const user = await User.findById(decoded.id);
   if (!user) {
     return next(new AppError('No user found', 404));
   }
+
   req.user = user;
   next();
 });
