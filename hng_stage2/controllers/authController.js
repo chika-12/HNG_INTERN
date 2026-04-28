@@ -96,8 +96,10 @@ exports.githubCallbackHandler = catchAsync(async (req, res, next) => {
   console.log('REFRESH TOKEN:', refreshToken);
 
   if (source === 'cli') {
-    res.status(200).json({ accessToken, refreshToken });
-  } else {
+    return res.redirect(
+      `http://localhost:4242/?accessToken=${accessToken}&refreshToken=${refreshToken}`
+    );
+  }else {
     res.cookie('access_token', accessToken, { httpOnly: true });
     res.cookie('refresh_token', refreshToken, { httpOnly: true });
     res.redirect(process.env.WEB_PORTAL_URL);
