@@ -12,6 +12,9 @@ profileRoute
   .route('/profiles')
   .get(controllers.getProfiles)
   .post(requireRole(['admin']), controllers.createProfiles);
+
+profileRoute.get('/profiles/export', requireRole(['admin']), controllers.exportProfiles);
+
 profileRoute
   .route('/profiles/:id')
   .get(controllers.getProfilesById)

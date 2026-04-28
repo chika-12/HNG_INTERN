@@ -6,6 +6,7 @@ const queryBuilder = require('../queryFeatures/features.js');
 const validateQuery = require('../queryFeatures/validateQuery.js');
 const parseSearchQuery = require('../queryFeatures/searchParser.js');
 const AppError = require('../utils/appError.js');
+const { Parser, Parser } = require('json2csv');
 
 //Get all profiles and accepts query params
 exports.getProfiles = catchAsync(async (req, res, next) => {
@@ -232,3 +233,26 @@ exports.searchProfiles = catchAsync(async (req, res, next) => {
     data: profiles,
   });
 });
+
+exports.exportProfiles = catchAsync(async (req, res, next) => {
+  const profiles = await Profile.find().lean();
+  if (!profiles || profiles.length === 0) {
+    return next(new AppError('No profiles found to export', 404))
+  }
+  const fields =[
+    'id',
+    'name',
+    'gender',
+    'gender_probability',
+    'age',
+    'age_group',
+    'country_id',
+    'country_name',
+    'country_probability',
+  ]
+  const parser = new Parser({fields})
+  const csv = parser.parse(profiles)
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', 'attachment; filename=profiles.csv');
+  return res.status(200).send(csv)
+})
