@@ -10,6 +10,7 @@ const app = express();
 const cookieParser = require('cookie-parser');
 const globalErrorHandler = require('./middleWare/globalErrorHandler');
 const authRouter = require('./route/authRoute');
+const morgan = require('morgan');
 
 app.use(
   cors({
@@ -31,6 +32,8 @@ app.use(hpp());
 app.use(mongodb_sanitizer());
 app.use(express.json({ limit: '10kb' }));
 app.use(cookieParser());
+
+app.use(morgan('combined'));
 
 const authLimiter = rate_limiter({
   max: 10,
