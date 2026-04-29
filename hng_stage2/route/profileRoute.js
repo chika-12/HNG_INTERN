@@ -5,6 +5,7 @@ const {
   protectMiddleWare,
   requireRole,
 } = require('../middleWare/protectMiddleWare');
+const authController = require('../controllers/authController');
 
 //profileRoute.use(protectMiddleWare);
 profileRoute.get(
@@ -16,6 +17,8 @@ profileRoute
   .route('/profiles')
   .get(protectMiddleWare, controllers.getProfiles)
   .post(protectMiddleWare, requireRole(['admin']), controllers.createProfiles);
+
+profileRoute.get('/users/me', protectMiddleWare, authController.whoami);
 
 profileRoute.get(
   '/profiles/export',
