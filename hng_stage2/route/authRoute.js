@@ -7,5 +7,5 @@ authRouter.get('/github', authController.redirectFunction);
 authRouter.get('/github/callback', authController.githubCallbackHandler);
 authRouter.post('/refresh', authController.refreshToken);
 authRouter.post('/logout', authController.logout);
-router.get('/me', protectMiddleWare, authController.whoami);
+authRouter.get('/me', protectMiddleWare, authController.whoami);
 module.exports = authRouter;
