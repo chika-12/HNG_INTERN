@@ -59,9 +59,18 @@ exports.githubCallbackHandler = catchAsync(async (req, res, next) => {
   const code_verifier = req.cookies.code_verifier;
   const source = req.cookies.oauth_source;
 
-  if (storedState !== state) {
+  // Explicit guard for every missing/invalid case
+  if (!code) return next(new AppError('Missing code', 400));
+  if (!state) return next(new AppError('Missing state', 400));
+  if (!storedState) return next(new AppError('Missing state cookie', 400));
+  if (state !== storedState)
     return next(new AppError('Invalid state parameter', 401));
-  }
+  if (!code_verifier) return next(new AppError('Missing PKCE verifier', 400));
+
+  // Clear one-time cookies immediately
+  res.clearCookie('code_verifier');
+  res.clearCookie('oauth_state');
+  res.clearCookie('oauth_source');
 
   const responseFromGit = await axios.post(
     github_access_url,
@@ -76,6 +85,11 @@ exports.githubCallbackHandler = catchAsync(async (req, res, next) => {
   );
 
   const githubAccessToken = responseFromGit.data.access_token;
+
+  if (!githubAccessToken) {
+    return next(new AppError('Failed to get GitHub access token', 401));
+  }
+
   const userCredentials = await axios.get(getGitHubUser, {
     headers: { Authorization: `Bearer ${githubAccessToken}` },
   });
@@ -84,11 +98,15 @@ exports.githubCallbackHandler = catchAsync(async (req, res, next) => {
   let { email } = userCredentials.data;
 
   if (!email) {
-    const emailRes = await axios.get('https://api.github.com/user/emails', {
-      headers: { Authorization: `Bearer ${githubAccessToken}` },
-    });
-    const primary = emailRes.data.find((e) => e.primary && e.verified);
-    email = primary ? primary.email : `${githubId}@noemail.github`;
+    try {
+      const emailRes = await axios.get('https://api.github.com/user/emails', {
+        headers: { Authorization: `Bearer ${githubAccessToken}` },
+      });
+      const primary = emailRes.data.find((e) => e.primary && e.verified);
+      email = primary ? primary.email : `${githubId}@noemail.github`;
+    } catch {
+      email = `${githubId}@noemail.github`;
+    }
   }
 
   const user = await User.findOneAndUpdate(
@@ -106,11 +124,11 @@ exports.githubCallbackHandler = catchAsync(async (req, res, next) => {
     return res.redirect(
       `http://localhost:4242/?accessToken=${accessToken}&refreshToken=${refreshToken}`
     );
-  } else {
-    res.cookie('access_token', accessToken, cookieConfig.accessToken);
-    res.cookie('refresh_token', refreshToken, cookieConfig.refreshToken);
-    res.redirect(process.env.WEB_PORTAL_URL);
   }
+
+  res.cookie('access_token', accessToken, cookieConfig.accessToken);
+  res.cookie('refresh_token', refreshToken, cookieConfig.refreshToken);
+  res.redirect(process.env.WEB_PORTAL_URL);
 });
 
 exports.refreshToken = catchAsync(async (req, res, next) => {
@@ -143,7 +161,7 @@ exports.logout = catchAsync(async (req, res, next) => {
   if (!user) return next(new AppError('Invalid refresh token', 403));
 
   user.refreshToken = null;
-  await user.save();
+  await user.save({ validateBeforeSave: false });
 
   res.clearCookie('access_token');
   res.clearCookie('refresh_token');
