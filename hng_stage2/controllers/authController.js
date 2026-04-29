@@ -17,19 +17,19 @@ exports.redirectFunction = catchAsync(async (req, res, next) => {
   res.cookie('code_verifier', codeVerifier, {
     httpOnly: true,
     maxAge: 60000,
-    sameSite: 'lax',
+    sameSite: 'none',
     secure: false,
   });
   res.cookie('oauth_state', state, {
     httpOnly: true,
     maxAge: 60000,
-    sameSite: 'lax',
+    sameSite: 'none',
     secure: false,
   });
   res.cookie('oauth_source', source, {
     httpOnly: true,
     maxAge: 60000,
-    sameSite: 'lax',
+    sameSite: 'none',
     secure: false,
   });
 
@@ -92,7 +92,7 @@ exports.githubCallbackHandler = catchAsync(async (req, res, next) => {
   const refreshToken = generateTokens.generateRefreshToken(user._id);
   const accessToken = generateTokens.generateAccessToken(user._id, user.role);
   user.refreshToken = refreshToken;
-  await user.save();
+  await user.save({ validateBeforeSave: false });
   console.log('REFRESH TOKEN:', refreshToken);
 
   if (source === 'cli') {
@@ -100,8 +100,19 @@ exports.githubCallbackHandler = catchAsync(async (req, res, next) => {
       `http://localhost:4242/?accessToken=${accessToken}&refreshToken=${refreshToken}`
     );
   } else {
-    res.cookie('access_token', accessToken, { httpOnly: true });
-    res.cookie('refresh_token', refreshToken, { httpOnly: true });
+    res.cookie('access_token', accessToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      maxAge: 15 * 60 * 1000,
+    });
+
+    res.cookie('refresh_token', refreshToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
     res.redirect(process.env.WEB_PORTAL_URL);
   }
 });
@@ -114,7 +125,7 @@ exports.refreshToken = catchAsync(async (req, res, next) => {
   if (!user || user.refreshToken !== refreshToken) {
     return next(new AppError('Invalid refresh token', 403));
   }
-  const access_token = generateTokens.generateAccessToken(user._id, user.role);
+  const accessToken = generateTokens.generateAccessToken(user._id, user.role);
   return res.status(200).json({ accessToken });
 });
 
