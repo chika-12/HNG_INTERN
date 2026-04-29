@@ -1,275 +1,378 @@
-# Profiles API
+# Insighta Labs+ Profiles API
 
-A RESTful API that serves African profile data with support for structured filtering, natural language search, sorting, and pagination.
+A secure, production-ready RESTful API serving African profile data with GitHub OAuth authentication, role-based access control, natural language search, CSV export, and full pagination support.
 
-Built with **Node.js**, **Express**, and **MongoDB (Mongoose)** as part of the HNG Internship Stage 2 backend challenge.
+Built with **Node.js**, **Express**, and **MongoDB (Mongoose)**. Deployed on **Railway**.
+
+**Base URL:**
+
+```
+https://hngintern-production-7bfd.up.railway.app/api/v1
+```
 
 ---
 
 ## Table of Contents
 
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Getting Started](#getting-started)
-- [Environment Variables](#environment-variables)
-- [Database Seeding](#database-seeding)
+- [System Architecture](#system-architecture)
+- [Authentication Flow](#authentication-flow)
+- [CLI Usage](#cli-usage)
+- [Token Handling Approach](#token-handling-approach)
+- [Role Enforcement Logic](#role-enforcement-logic)
+- [Natural Language Parsing Approach](#natural-language-parsing-approach)
 - [API Reference](#api-reference)
-  - [Get All Profiles](#1-get-all-profiles)
-  - [Natural Language Search](#2-natural-language-search)
 - [Filters](#filters)
 - [Sorting](#sorting)
 - [Pagination](#pagination)
 - [Error Handling](#error-handling)
 - [Performance](#performance)
+- [Getting Started](#getting-started)
 
 ---
 
-## Features
+## System Architecture
 
-- Fetch profiles with structured query filters
-- Natural language search (rule-based, no AI/LLM)
-- Sorting by any field (ascending/descending)
-- Pagination with metadata
-- Centralized error handling
-- UUID v7 primary keys
-- Database seeding from JSON
-
----
-
-## Tech Stack
-
-| Layer         | Technology    |
-| ------------- | ------------- |
-| Runtime       | Node.js       |
-| Framework     | Express.js    |
-| Database      | MongoDB Atlas |
-| ODM           | Mongoose      |
-| ID Generation | UUID v7       |
-| Config        | dotenvx       |
-
----
-
-## Project Structure
+The API is structured in clean, separated layers — each with a single responsibility:
 
 ```
-hng_stage2/
+insighta-backend/
 ├── controllers/
-│   └── profileController.js     # Route handlers
+│   ├── authController.js        # GitHub OAuth, token refresh, logout
+│   └── profileControllers.js   # Profile CRUD, search, export
+├── middleware/
+│   ├── protectMiddleWare.js     # JWT verification + RBAC
+│   └── globalErrorHandler.js   # Centralized error handling
 ├── models/
-│   └── usermodel.js             # Mongoose schema
-├── routes/
-│   └── profileRoutes.js         # API routes
+│   ├── user.js                  # User schema (GitHub OAuth users)
+│   └── usermodel.js             # Profile schema
+├── route/
+│   ├── authRoute.js             # /api/v1/auth/*
+│   └── profileRoute.js          # /api/v1/profiles/*
 ├── queryFeatures/
 │   ├── features.js              # Filter + sort + pagination builder
 │   ├── searchParser.js          # Natural language query parser
 │   └── validateQuery.js         # Query parameter validation
-├── middleware/
-│   └── globalErrorHandler.js    # Centralized error handler
 ├── utils/
-│   ├── AppError.js              # Custom error class
-│   └── catchAsync.js            # Async error wrapper
-├── json_data/
-│   ├── seed_profiles.json       # Seed data
-│   └── script.js                # Seeding script
-├── app.js
-├── server.js
-└── config.env
+│   ├── pkce.js                  # PKCE code verifier + challenge generator
+│   ├── generateToken.js         # JWT access + refresh token generators
+│   ├── catchAsync.js            # Async error wrapper
+│   └── appError.js              # Custom error class
+├── app.js                       # Express app setup + middleware stack
+└── server.js                    # Server entry point
+```
+
+**Middleware stack (applied globally):**
+
+| Middleware               | Purpose                                  |
+| ------------------------ | ---------------------------------------- |
+| `helmet`                 | Sets secure HTTP headers                 |
+| `xss-clean`              | Sanitizes user input against XSS attacks |
+| `hpp`                    | Prevents HTTP parameter pollution        |
+| `express-mongo-sanitize` | Blocks NoSQL injection via `$` operators |
+| `express-rate-limit`     | Limits each IP to 500 requests per hour  |
+| `cookie-parser`          | Parses cookies for OAuth state and PKCE  |
+
+---
+
+## Authentication Flow
+
+Authentication uses **GitHub OAuth 2.0 with PKCE** (Proof Key for Code Exchange). PKCE prevents authorization code interception attacks by binding the token exchange to the client that started the flow.
+
+### Web Flow
+
+```
+1. Client visits:    GET /api/v1/auth/github
+2. Backend:          generates PKCE pair (verifier + challenge)
+                     generates random state value
+                     stores verifier, state, source in httpOnly cookies
+                     redirects to GitHub OAuth authorization page
+3. GitHub:           user logs in and grants permission
+4. GitHub:           redirects to /api/v1/auth/github/callback?code=...&state=...
+5. Backend:          validates state matches cookie (CSRF protection)
+                     exchanges code + code_verifier with GitHub for access token
+                     fetches user profile and email from GitHub API
+                     creates or updates user in MongoDB (upsert by githubId)
+                     generates JWT access token (15 min) + refresh token (7 days)
+                     saves refresh token to user document in MongoDB
+                     sets access_token and refresh_token as httpOnly cookies
+                     redirects to WEB_PORTAL_URL
+```
+
+### CLI Flow
+
+```
+1. CLI opens:        GET /api/v1/auth/github?source=cli
+2. Backend:          same as web flow but stores source=cli in cookie
+3. After GitHub:     detects source=cli from cookie
+                     redirects to: http://localhost:4242/?accessToken=...&refreshToken=...
+4. CLI:              local server on port 4242 catches the redirect
+                     reads tokens from URL query params
+                     saves them to ~/.insighta/tokens.json
+```
+
+The `source=cli` parameter is what tells the backend to deliver tokens via URL redirect to the CLI's local server instead of setting httpOnly cookies for the browser.
+
+### Token Refresh
+
+```
+POST /api/v1/auth/refresh
+Body: { "refreshToken": "..." }
+
+Response: { "accessToken": "..." }
+```
+
+The backend verifies the refresh token's signature and checks it matches the one stored in the user's MongoDB document. On success it returns a new access token.
+
+---
+
+## CLI Usage
+
+A dedicated CLI tool — `insighta_adv_cli` — is published on npm and talks directly to this API.
+
+### Install
+
+```bash
+npm install -g insighta_adv_cli
+```
+
+### Commands
+
+```bash
+insighta login                                    # Authenticate via GitHub OAuth
+insighta logout                                   # Clear local session
+insighta whoami                                   # Show currently logged in user
+
+insighta profiles list                            # List all profiles
+insighta profiles list --page 2                   # Paginate
+insighta profiles list --limit 10                 # Set page size
+insighta profiles list --sort name                # Sort by field
+insighta profiles list --search "women from ghana" # Natural language search
+
+insighta profiles get <id>                        # Get single profile by ID
+insighta profiles export                          # Export all profiles to CSV (admin only)
+insighta profiles export -o myfile.csv            # Export with custom filename
+```
+
+### Source Code
+
+```
+https://github.com/chika-mark/insighta-cli
 ```
 
 ---
 
-## Getting Started
+## Token Handling Approach
 
-### Prerequisites
+The API issues two tokens on successful authentication:
 
-- Node.js v18+
-- MongoDB Atlas account
-- npm
+| Token         | Expiry     | Purpose                                                   |
+| ------------- | ---------- | --------------------------------------------------------- |
+| Access Token  | 15 minutes | Sent with every API request in the `Authorization` header |
+| Refresh Token | 7 days     | Used to obtain a new access token without re-login        |
 
-### Installation
+### Access Token
 
-```bash
-# Clone the repository
-git clone https://github.com/your-username/hng_stage2.git
-cd hng_stage2
+Generated with `jsonwebtoken` and contains:
 
-# Install dependencies
-npm install
+```json
+{ "id": "user._id", "role": "user.role" }
 ```
 
-### Run the server
+Sent by clients as:
 
-```bash
-# Development
-npm run dev
-
-# Production
-npm start
 ```
+Authorization: Bearer <accessToken>
+```
+
+The `protectMiddleWare` extracts and verifies this token on every protected route. It reads from the `Authorization` header first, then falls back to the `access_token` cookie for web clients.
+
+### Refresh Token
+
+Stored in two places:
+
+- **MongoDB** — on the user's document (`user.refreshToken`)
+- **Client** — in `~/.insighta/tokens.json` for CLI, or `refresh_token` httpOnly cookie for web
+
+On refresh, the backend verifies the token's signature AND checks it matches the stored value in MongoDB. This means refresh tokens can be explicitly revoked by setting `user.refreshToken = null` on logout.
+
+### Logout
+
+```
+POST /api/v1/auth/logout
+Body: { "refreshToken": "..." }
+```
+
+Finds the user by refresh token and sets it to `null` in MongoDB — invalidating the session server-side even if the token hasn't expired yet.
 
 ---
 
-## Environment Variables
+## Role Enforcement Logic
 
-Create a `config.env` file in the project root:
+The API supports two roles assigned to users at the time of first login:
 
-```env
-NODE_ENV=development
-PORT=3000
-DATABASE=mongodb+srv://username:<PASSWORD>@cluster0.xxxxx.mongodb.net/profiles
-PASSWORD=your_mongodb_password
+| Role      | Default | Assigned by                         |
+| --------- | ------- | ----------------------------------- |
+| `analyst` | ✅ Yes  | Automatically on first GitHub login |
+| `admin`   | ❌ No   | Manually updated in MongoDB         |
+
+### How it works
+
+Role enforcement uses two middleware functions that work together:
+
+**1. `protectMiddleWare`** — verifies the JWT and attaches the full user object to `req.user`:
+
+```js
+const decoded = jwt.verify(token, process.env.JWT_SECRET);
+const user = await User.findById(decoded.id);
+req.user = user;
 ```
+
+**2. `requireRole`** — checks `req.user.role` against the allowed roles for that route:
+
+```js
+exports.requireRole = (role) => {
+  return (req, res, next) => {
+    if (!role.includes(req.user.role)) {
+      return next(new AppError('Access denied', 403));
+    }
+    next();
+  };
+};
+```
+
+### Route Protection Table
+
+| Route                          | Method | Protection                                     |
+| ------------------------------ | ------ | ---------------------------------------------- |
+| `/api/v1/auth/github`          | GET    | Public                                         |
+| `/api/v1/auth/github/callback` | GET    | Public                                         |
+| `/api/v1/auth/refresh`         | POST   | Public                                         |
+| `/api/v1/auth/logout`          | POST   | Public                                         |
+| `/api/v1/profiles`             | GET    | `protectMiddleWare`                            |
+| `/api/v1/profiles`             | POST   | `protectMiddleWare` + `requireRole(['admin'])` |
+| `/api/v1/profiles/search`      | GET    | `protectMiddleWare`                            |
+| `/api/v1/profiles/export`      | GET    | `protectMiddleWare` + `requireRole(['admin'])` |
+| `/api/v1/profiles/:id`         | GET    | `protectMiddleWare`                            |
+| `/api/v1/profiles/:id`         | DELETE | `protectMiddleWare` + `requireRole(['admin'])` |
 
 ---
 
-## Database Seeding
+## Natural Language Parsing Approach
 
-To seed the database with the bundled profile data:
+Natural language search is handled by a custom rule-based parser in `queryFeatures/searchParser.js`. It requires no AI or external APIs — it uses keyword matching and a country name lookup table to convert plain English into MongoDB filters.
 
-```bash
-node json_data/script.js
+### How it works
+
+The parser scans the query string for known keywords and maps them to filter fields:
+
+**Gender detection:**
+
+```
+"women", "female", "girls"  →  gender: "female"
+"men", "male", "boys"       →  gender: "male"
 ```
 
-This will:
+**Age group detection:**
 
-1. Connect to MongoDB
-2. Clear any existing records
-3. Generate a UUID v7 for each profile
-4. Insert all profiles from `seed_profiles.json`
+```
+"young", "youth"    →  age_group: "teenager", min_age: 16, max_age: 24
+"adult", "adults"   →  age_group: "adult"
+"senior", "elderly" →  age_group: "senior"
+"child", "children" →  age_group: "child"
+```
+
+**Age range detection:**
+
+```
+"above 30"         →  min_age: 30
+"under 25"         →  max_age: 25
+"between 20 and 40" →  min_age: 20, max_age: 40
+```
+
+**Country detection:**
+
+```
+"from ghana"   →  country_id: "GH"
+"from nigeria" →  country_id: "NG"
+"from kenya"   →  country_id: "KE"
+```
+
+A full country name → ISO code lookup table maps country names to their 2-letter codes.
+
+### Example
+
+```
+Query:    "elderly women from ghana"
+
+Parsed:   {
+            gender: "female",
+            age_group: "senior",
+            country_id: "GH"
+          }
+
+MongoDB:  Profile.find({ gender: "female", age_group: "senior", country_id: "GH" })
+```
+
+The response always includes an `interpreted` field showing exactly what the parser extracted — useful for debugging:
+
+```json
+{
+  "status": "success",
+  "query": "elderly women from ghana",
+  "interpreted": {
+    "gender": "female",
+    "age_group": "senior",
+    "country_id": "GH"
+  },
+  "data": [...]
+}
+```
+
+### Endpoint
+
+```
+GET /api/v1/profiles/search?q=elderly women from ghana
+```
 
 ---
 
 ## API Reference
 
-### Base URL
+### Auth Routes
 
-```
-http://localhost:3000/api/profiles
-```
+| Method | Route                          | Description               |
+| ------ | ------------------------------ | ------------------------- |
+| GET    | `/api/v1/auth/github`          | Start GitHub OAuth flow   |
+| GET    | `/api/v1/auth/github/callback` | GitHub OAuth callback     |
+| POST   | `/api/v1/auth/refresh`         | Refresh access token      |
+| POST   | `/api/v1/auth/logout`          | Logout and revoke session |
 
----
+### Profile Routes
 
-### 1. Get All Profiles
-
-```
-GET /api/profiles
-```
-
-Returns all profiles with optional filtering, sorting, and pagination.
-
-**Example requests:**
-
-```
-GET /api/profiles
-GET /api/profiles?gender=female
-GET /api/profiles?age_group=adult&country_id=NG
-GET /api/profiles?min_age=18&max_age=35
-GET /api/profiles?gender=male&min_gender_probability=0.8
-GET /api/profiles?sort=-age&page=2&limit=10
-```
-
-**Example response:**
-
-```json
-{
-  "status": "success",
-  "total": 143,
-  "page": 1,
-  "limit": 10,
-  "totalPages": 15,
-  "hasNextPage": true,
-  "hasPrevPage": false,
-  "data": [
-    {
-      "id": "019687a2-...",
-      "name": "mercy agyei",
-      "gender": "female",
-      "gender_probability": 0.79,
-      "age": 9,
-      "age_group": "child",
-      "country_id": "NG",
-      "country_name": "Nigeria",
-      "country_probability": 0.11,
-      "created_at": "2025-01-01T00:00:00.000Z"
-    }
-  ]
-}
-```
-
----
-
-### 2. Natural Language Search
-
-```
-GET /api/profiles/search?q=<plain English query>
-```
-
-Interprets plain English and converts it into structured filters. Rule-based only — no AI or LLMs involved.
-
-**Example requests:**
-
-```
-GET /api/profiles/search?q=young males from nigeria
-GET /api/profiles/search?q=females above 30
-GET /api/profiles/search?q=people from angola
-GET /api/profiles/search?q=adult males from kenya
-GET /api/profiles/search?q=male and female teenagers above 17
-GET /api/profiles/search?q=elderly women from ghana&page=1&limit=5
-```
-
-**Supported query mappings:**
-
-| Natural Language                     | Extracted Filter                                 |
-| ------------------------------------ | ------------------------------------------------ |
-| `young males`                        | `gender=male, min_age=16, max_age=24`            |
-| `females above 30`                   | `gender=female, min_age=30`                      |
-| `people from angola`                 | `country_id=AO`                                  |
-| `adult males from kenya`             | `gender=male, age_group=adult, country_id=KE`    |
-| `male and female teenagers above 17` | `age_group=teenager, min_age=17`                 |
-| `elderly women from ghana`           | `gender=female, age_group=senior, country_id=GH` |
-| `between 20 and 40`                  | `min_age=20, max_age=40`                         |
-| `men under 25`                       | `gender=male, max_age=25`                        |
-
-**Example response:**
-
-```json
-{
-  "status": "success",
-  "query": "young males from nigeria",
-  "interpreted": {
-    "gender": "male",
-    "min_age": 16,
-    "max_age": 24,
-    "country_id": "NG"
-  },
-  "total": 12,
-  "page": 1,
-  "limit": 10,
-  "totalPages": 2,
-  "hasNextPage": true,
-  "hasPrevPage": false,
-  "data": [...]
-}
-```
-
-> Note: `interpreted` shows exactly what filters were extracted from your query — useful for debugging unexpected results.
+| Method | Route                     | Description             | Role  |
+| ------ | ------------------------- | ----------------------- | ----- |
+| GET    | `/api/v1/profiles`        | List all profiles       | Any   |
+| POST   | `/api/v1/profiles`        | Create a profile        | Admin |
+| GET    | `/api/v1/profiles/search` | Natural language search | Any   |
+| GET    | `/api/v1/profiles/export` | Export profiles as CSV  | Admin |
+| GET    | `/api/v1/profiles/:id`    | Get profile by ID       | Any   |
+| DELETE | `/api/v1/profiles/:id`    | Delete profile by ID    | Admin |
 
 ---
 
 ## Filters
 
-Available on `GET /api/profiles`:
+Available on `GET /api/v1/profiles`:
 
 | Parameter                 | Type        | Description                            | Example                        |
 | ------------------------- | ----------- | -------------------------------------- | ------------------------------ |
-| `gender`                  | string      | `male` or `female`                     | `?gender=male`                 |
+| `gender`                  | string      | `male` or `female`                     | `?gender=female`               |
 | `age_group`               | string      | `child`, `teenager`, `adult`, `senior` | `?age_group=adult`             |
 | `country_id`              | string      | 2-letter ISO code                      | `?country_id=NG`               |
 | `min_age`                 | number      | Minimum age (inclusive)                | `?min_age=18`                  |
 | `max_age`                 | number      | Maximum age (inclusive)                | `?max_age=60`                  |
-| `min_gender_probability`  | float (0–1) | Minimum gender confidence score        | `?min_gender_probability=0.75` |
-| `min_country_probability` | float (0–1) | Minimum country confidence score       | `?min_country_probability=0.5` |
+| `min_gender_probability`  | float (0–1) | Minimum gender confidence              | `?min_gender_probability=0.75` |
+| `min_country_probability` | float (0–1) | Minimum country confidence             | `?min_country_probability=0.5` |
 
 All filters are combinable.
 
@@ -280,9 +383,9 @@ All filters are combinable.
 Use the `sort` parameter. Prefix with `-` for descending order.
 
 ```
-GET /api/profiles?sort=age           # ascending
-GET /api/profiles?sort=-age          # descending
-GET /api/profiles?sort=country_id,-age  # multiple fields
+GET /api/v1/profiles?sort=age          # ascending
+GET /api/v1/profiles?sort=-age         # descending
+GET /api/v1/profiles?sort=country_id,-age  # multiple fields
 ```
 
 Default sort: `-created_at` (newest first).
@@ -322,39 +425,67 @@ All errors follow a consistent structure:
 }
 ```
 
-| Status Code | Meaning                             |
-| ----------- | ----------------------------------- |
-| `400`       | Missing or empty required parameter |
-| `422`       | Invalid parameter type              |
-| `404`       | Profile not found                   |
-| `500`       | Internal server error               |
-
-**Examples:**
-
-```json
-// Unknown query parameter
-{ "status": "error", "message": "Invalid query parameters" }
-
-// Uninterpretable search query
-{ "status": "error", "message": "Unable to interpret query" }
-
-// Missing q parameter
-{ "status": "error", "message": "Query parameter \"q\" is required" }
-```
+| Status Code | Meaning                           |
+| ----------- | --------------------------------- |
+| `400`       | Missing or invalid parameter      |
+| `401`       | Not logged in or token expired    |
+| `403`       | Access denied — insufficient role |
+| `404`       | Resource not found                |
+| `422`       | Invalid parameter type            |
+| `500`       | Internal server error             |
 
 ---
 
 ## Performance
 
-This API is optimized to handle the full dataset efficiently:
-
-- **`.lean()`** on all Mongoose queries — returns plain JS objects instead of full Mongoose documents, reducing memory overhead
-- **`Promise.all`** for parallel execution of `find()` and `countDocuments()` — both run simultaneously instead of sequentially
-- **Database indexes** on `gender`, `country_id`, `age_group`, and a compound index on all three — eliminates full collection scans on common filters
+- **`.lean()`** on all Mongoose queries — returns plain JS objects, reducing memory overhead
+- **`Promise.all`** for parallel `find()` and `countDocuments()` — both run simultaneously
+- **Database indexes** on `gender`, `country_id`, `age_group`, and a compound index on all three — eliminates full collection scans
 - **Pagination cap** at 50 records per request — prevents large payload responses
 
 ---
 
-## License
+## Getting Started
 
-MIT
+### Prerequisites
+
+- Node.js v18+
+- MongoDB Atlas account
+- GitHub OAuth App
+
+### Installation
+
+```bash
+git clone <repo-url>
+cd insighta-backend
+npm install
+```
+
+### Environment Variables
+
+```env
+NODE_ENV=development
+PORT=5000
+DATABASE=mongodb+srv://username:<PASSWORD>@cluster.mongodb.net/profiles
+PASSWORD=your_mongodb_password
+JWT_SECRET=your_jwt_secret
+JWT_REFRESH_SECRET=your_refresh_secret
+GITHUB_CLIENT_ID=your_github_client_id
+GITHUB_CLIENT_SECRET=your_github_client_secret
+GITHUB_CALLBACK_URL=https://your-domain.com/api/v1/auth/github/callback
+WEB_PORTAL_URL=https://your-web-portal.com
+```
+
+### Run
+
+```bash
+# Development
+npm run dev
+
+# Production
+npm start
+```
+
+---
+
+## License
