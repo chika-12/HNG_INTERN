@@ -11,28 +11,11 @@ const cookieParser = require('cookie-parser');
 const globalErrorHandler = require('./middleWare/globalErrorHandler');
 const authRouter = require('./route/authRoute');
 
-app.use(helmet());
-app.use(xss());
-app.use(hpp());
-app.use(mongodb_sanitizer());
-
-app.use(express.json({ limit: '10kb' }));
-app.use(cookieParser());
-
-// app.use((req, res, next) => {
-//   res.header('Access-Control-Allow-Origin', '*');
-//   res.header('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
-//   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-//   if (req.method === 'OPTIONS') {
-//     return res.sendStatus(200);
-//   }
-//   next();
-// });
-
 app.use(
   cors({
     origin: [
       'http://localhost:5500',
+      'http://localhost:3000',
       'https://insighta-web-portal-eta.vercel.app',
     ],
     credentials: true,
@@ -40,20 +23,43 @@ app.use(
     allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
+app.options('*', cors());
 
-const limit = rate_limiter({
-  max: 500, // raise this
+app.use(helmet());
+app.use(xss());
+app.use(hpp());
+app.use(mongodb_sanitizer());
+app.use(express.json({ limit: '10kb' }));
+app.use(cookieParser());
+
+const authLimiter = rate_limiter({
+  max: 10,
+  windowMs: 15 * 60 * 1000,
+  message: JSON.stringify({
+    status: 'error',
+    message: 'Too many requests. Try again later.',
+  }),
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const apiLimiter = rate_limiter({
+  max: 500,
   windowMs: 60 * 60 * 1000,
   message: JSON.stringify({
-    // make it JSON!
     status: 'error',
     message: 'Too many requests from this IP. Try again later.',
   }),
 });
 
-app.use('/api', limit);
-app.use('/api/v1', profileRoute);
+app.use('/api', apiLimiter);
+
+app.use('/auth', authLimiter, authRouter);
 app.use('/api/v1/auth', authRouter);
+
+app.use('/api/v1', profileRoute);
+app.use('/api', profileRoute);
+
 app.use(globalErrorHandler);
 
 module.exports = app;
