@@ -11,6 +11,7 @@ const cookieParser = require('cookie-parser');
 const globalErrorHandler = require('./middleWare/globalErrorHandler');
 const authRouter = require('./route/authRoute');
 const morgan = require('morgan');
+const { csrfCookie, csrfProtect } = require('./middleWare/csrfMiddleware');
 
 app.use(
   cors({
@@ -32,6 +33,9 @@ app.use(hpp());
 app.use(mongodb_sanitizer());
 app.use(express.json({ limit: '10kb' }));
 app.use(cookieParser());
+
+app.use(csrfCookie);
+app.use(csrfProtect);
 
 app.use(morgan('combined'));
 
