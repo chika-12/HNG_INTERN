@@ -60,13 +60,11 @@ const apiLimiter = rate_limiter({
 });
 
 app.use('/api', apiLimiter);
-
 app.use('/auth', authLimiter, authRouter);
+app.use('/api/auth', authRouter);
 app.use('/api/v1/auth', authRouter);
-
 app.use('/api/v1', profileRoute);
 app.use('/api', profileRoute);
-
 app.use(globalErrorHandler);
 
 module.exports = app;
