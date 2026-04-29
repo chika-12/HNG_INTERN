@@ -15,7 +15,7 @@ const detectIntent = (str) => {
     const age = result[1];
     returnObj.min_age = Number(age);
   }
-  const result_max = str.match(/(?:below|over|older than) (\d+)/);
+  const result_max = str.match(/(?:below|over|older than|younger than) (\d+)/);
   if (result_max && result_max.length > 0) {
     const age = result_max[1];
     returnObj.max_age = Number(age);
@@ -48,3 +48,6 @@ const val4 = detectIntent('show me women and man in nigeria');
 console.log(val4);
 const val5 = detectIntent('women above 30 in nigeria and men below 50');
 console.log(val5);
+console.log(detectIntent('men over 25 in nigeria'));
+console.log(detectIntent('women older than 40'));
+console.log(detectIntent('men younger than 50'));

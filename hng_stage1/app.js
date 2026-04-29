@@ -25,14 +25,16 @@ app.use((req, res, next) => {
     next();
 });
 
-// const limit = rate_limiter({
-//     max:100,
-//     windowMs: 60 * 60 * 1000,
-//     message: 'Too many requests from this IP. Try again later.'
-// })
+const limit = rate_limiter({
+    max: 500,  // raise this
+    windowMs: 60 * 60 * 1000,
+    message: JSON.stringify({   // make it JSON!
+        status: "error",
+        message: "Too many requests from this IP. Try again later."
+    })
+})
 
-//app.use('/', limit);
-
+app.use('/api', limit); 
 app.use('/api', profileRoute)
 
 

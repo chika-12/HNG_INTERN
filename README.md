@@ -59,5 +59,3 @@ This structure improves:
 * Scalability
 * Maintainability
 * Separation of concerns
-
-It follows standard backend engineering practices used in production systems.
